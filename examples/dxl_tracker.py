@@ -14,6 +14,13 @@ from multiprocessing import Process, Value, Manager
 from helper import create_callback
 
 def main():
+    # Set seed for random number generator (part 1)
+    import pickle
+    import numpy as np
+    with open('numpy_static_random_state.pkl','rb') as random_state_file:
+        random_state = pickle.loads(random_state_file.read()) # load state
+        np.random.set_state(random_state) # set state
+
     # Create DXL Tracker1D environment
     env = DxlTracker1DEnv(setup='dxl_tracker_default',
                           idn=1,
@@ -43,6 +50,16 @@ def main():
     # Create baselines trpo policy function
     sess = U.single_threaded_session()
     sess.__enter__()
+
+    # Set seed for random number generator (part 2)
+    import tensorflow as tf
+    import numpy as np
+    import random
+    _MAXINT32 = 2**31 - 1
+    seed = np.random.randint(1, _MAXINT32)
+    tf.set_random_seed(seed)
+    random.seed(seed) # Python random library
+
     def policy_fn(name, ob_space, ac_space):
         return MlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
             hid_size=32, num_hid_layers=2)
