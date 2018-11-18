@@ -12,6 +12,7 @@ import senseact.devices.create2.create2_config as create2_config
 
 from multiprocessing import Process, Value, Manager
 from baselines.trpo_mpi.trpo_mpi import learn
+from baselines.ppo1 import pposgd_simple
 from baselines.ppo1.mlp_policy import MlpPolicy
 
 from senseact.envs.create2.create2_mover_env import Create2MoverEnv
@@ -35,6 +36,7 @@ def main():
     # Create baselines TRPO policy function
     sess = U.single_threaded_session()
     sess.__enter__()
+
     def policy_fn(name, ob_space, ac_space):
         return MlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
             hid_size=32, num_hid_layers=2)
@@ -51,15 +53,12 @@ def main():
     # Create callback function for logging data from baselines TRPO learn
     kindred_callback = create_callback(shared_returns)
 
-    # Train baselines TRPO
-    learn(env, policy_fn,
+    # Train baselines PPO
+    pposgd_simple.learn(env, policy_fn,
+        optim_epochs=4, optim_stepsize=0.001, optim_batchsize=64,
+        clip_param=0.2, entcoeff=0.01,
           max_timesteps=40000,
-          timesteps_per_batch=2048,
-          max_kl=0.05,
-          cg_iters=10,
-          cg_damping=0.1,
-          vf_iters=5,
-          vf_stepsize=0.001,
+          timesteps_per_actorbatch=2048,
           gamma=0.995,
           lam=0.995,
           callback=kindred_callback
